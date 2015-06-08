@@ -13,10 +13,26 @@ var db = Bookshelf.initialize({
   }
 });
 
+//one user has many URLs, one url is associated with one user
+//pass user primary key into url
+
+db.knex.schema.hasTable('users').then(function(exists){
+  if (!exists) {
+      db.knex.schema.createTable('users', function( user ){
+        user.increments('id').primary();
+        user.string('username', 255);
+        user.string('password', 255);
+    }).then(function(table) {
+      console.log('Created table', table);
+    });
+  }
+});
+
 db.knex.schema.hasTable('urls').then(function(exists) {
   if (!exists) {
     db.knex.schema.createTable('urls', function (link) {
       link.increments('id').primary();
+      link.string('user_id').references('id').inTable('users');
       link.string('url', 255);
       link.string('base_url', 255);
       link.string('code', 100);
@@ -33,7 +49,7 @@ db.knex.schema.hasTable('clicks').then(function(exists) {
   if (!exists) {
     db.knex.schema.createTable('clicks', function (click) {
       click.increments('id').primary();
-      click.integer('link_id');
+      click.integer('link_id').references('url').inTable('urls');
       click.timestamps();
     }).then(function (table) {
       console.log('Created Table', table);
