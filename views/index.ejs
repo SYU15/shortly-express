@@ -1,8 +1,10 @@
 <script id='layout' type='text/x-handlebars-template'>
   <div class='navigation'>
   <ul>
-    <li><a href='#' class='index'>All Links</a></li>
-    <li><a href='#' class='create'>Shorten</a></li>
+    <li><a href='/' class='index'>All Links</a></li>
+    <li><a href='/create' class='create'>Shorten</a></li>
+    <li><a href='/login' class='login'>Login</a></li>
+    <li><a href='/logout' class='logout'>Logout</a></li>
   </ul>
   </div>
   <div id='container'></div>
@@ -12,7 +14,7 @@
 <script id='link' type='text/x-handlebars-template'>
   <img src='/redirect_icon.png'/>
   <div class='info'>
-    <div class='visits'><span class='count'>{{visits}}</span>Visits</div>
+    <div class='visits'><span class='count'>{{visits}} {{userid}}</span>Visits</div>
     <div class='title'>{{title}}</div>
     <div class='original'>{{url}}</div>
     <a href='{{base_url}}/{{code}}'>{{base_url}}/{{code}}</a>

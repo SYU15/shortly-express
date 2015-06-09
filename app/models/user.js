@@ -7,7 +7,7 @@ var User = db.Model.extend({
 
   initialize: function(){
     this.on('creating', function(model, attrs, options){
-      console.log("User model doing something....");
+      console.log("Created a user: " + model.get('username'));
     });
   }
 });

@@ -27,8 +27,9 @@ var session = { path: '/',
                 httpOnly: true,
                 secure: false,
                 secret: 'sarah is da bomb',
-                cookie: {maxAge: 60000, secure: false},
-                maxAge: 60000
+                cookie: {maxAge: 3600000, secure: false},
+                maxAge: 3600000,
+                userid: null
                 // genid: function(req) { return genuuid();}
               };
 
@@ -62,7 +63,11 @@ function(req, res) {
 
 app.get('/links',
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
+  var userid = req.session.userid;
+  console.log("User id: " + userid);
+
+  var param = userid ? { data: { user_id: userid}, processData: true } : {};
+  Links.reset().query('where', 'user_id', '=', userid).fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
@@ -86,7 +91,6 @@ app.post('/signup',
           salt: generatedSalt
         });
 
-        console.log(dbUser);
         dbUser.save().then(function(newUser) {
           Users.add(newUser);
           res.redirect('/');
@@ -103,10 +107,11 @@ app.post('/login',
           .then( function( hash ) {
             if ( hash === found.attributes.password) {
 
-              req.session.regenerate( function (err) {
+              req.session.regenerate( function (err) {});
+                console.log("regenerating session id: " + JSON.stringify(req.session) );
                 req.session.userid = found.attributes.id;
-              });
-              res.redirect('/create/');
+                console.log("after: " + JSON.stringify(req.session))
+              res.redirect('/create');
             }
             else {
               res.send(401);

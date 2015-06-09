@@ -30,19 +30,19 @@ db.knex.schema.hasTable('users').then(function(exists){
   }
 });
 
-db.knex.schema.hasTable('tokens').then(function(exists){
-  if (!exists) {
-    db.knex.schema.createTable('tokens', function( token ){
-      token.increments('id').primary();
-      token.string('user_id', 255).references('id').inTable('users');
-      token.string('token_id', 255);
-      token.timestamps();
-    }).then(function(table) {
-      console.log('Created table tokens', table);
-    });
-  }
+// db.knex.schema.hasTable('tokens').then(function(exists){
+//   if (!exists) {
+//     db.knex.schema.createTable('tokens', function( token ){
+//       token.increments('id').primary();
+//       token.string('user_id', 255).references('id').inTable('users');
+//       token.string('token_id', 255);
+//       token.timestamps();
+//     }).then(function(table) {
+//       console.log('Created table tokens', table);
+//     });
+//   }
 
-});
+// });
 db.knex.schema.hasTable('urls').then(function(exists) {
   if (!exists) {
     db.knex.schema.createTable('urls', function (link) {
