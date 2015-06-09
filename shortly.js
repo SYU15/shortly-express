@@ -64,9 +64,6 @@ function(req, res) {
 app.get('/links',
 function(req, res) {
   var userid = req.session.userid;
-  console.log("User id: " + userid);
-
-  var param = userid ? { data: { user_id: userid}, processData: true } : {};
   Links.reset().query('where', 'user_id', '=', userid).fetch().then(function(links) {
     res.send(200, links.models);
   });
