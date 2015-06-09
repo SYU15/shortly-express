@@ -4,6 +4,8 @@ var partials = require('express-partials');
 var bodyParser = require('body-parser');
 var Promise = require('bluebird');
 var expressSession = require('express-session');
+var passport = require('passport');
+var OAuthStrategy = require('passport-oauth').OAuthStrategy;
 
 
 var db = require('./app/config');
@@ -35,9 +37,32 @@ var session = { path: '/',
 
 app.use(expressSession(session));
 
+passport.use('github', new OAuthStrategy({
+    requestTokenURL: 'https://www.github.com/login/oauth/request_token',
+    accessTokenURL: 'https://www.github.com/login/oauth/access_token',
+    userAuthorizationURL: 'https://www.github.com/login/oauth/authorize',
+    consumerKey: '123-456-789',
+    consumerSecret: 'shhh-its-a-secret',
+    callbackURL: 'https://127.0.0.1:4568/auth/github/callback'
+  },
+  function(token, tokenSecret, profile, done) {
+
+  }
+));
+
 app.get('/',
 function(req, res) {
   res.render('index');
+});
+
+app.get('/auth/github',
+passport.authenticate('github'));
+
+app.get('/auth/github/callback',
+passport.authenticate('github', { failureRedirect: '/login' }),
+  function(req, res) {
+    // Successful authentication, redirect home.
+  res.redirect('/create');
 });
 
 app.get('/login',
