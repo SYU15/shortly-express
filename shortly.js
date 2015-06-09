@@ -2,6 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var Promise = require('bluebird');
 
 
 var db = require('./app/config');
@@ -25,7 +26,7 @@ app.use(express.static(__dirname + '/public'));
 
 app.get('/',
 function(req, res) {
-  res.render('login');
+  res.render('index');
 });
 
 app.get('/signup',
@@ -43,6 +44,52 @@ function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
+});
+
+app.post('/signup',
+  function(req, res){
+    // grab user
+    console.log("Username: " + req.body.username + " Password: " + req.body.password);
+    var generatedSalt;
+
+    util.generateUserSalt()
+      .then( function (salt) {
+        generatedSalt = salt;
+        return util.generateUserHash(req.body.password, salt);
+      })
+      .then( function (hash){
+        // write to the user dbUser
+        var dbUser = new User ({
+          username: req.body.username,
+          password: hash,
+          salt: generatedSalt
+        });
+
+        console.log(dbUser);
+        dbUser.save().then(function(newUser) {
+          Users.add(newUser);
+          res.redirect('/');
+        });
+      });
+});
+
+app.post('/login',
+  function(req, res){
+
+    new User({ username: req.body.username }).fetch().then(function(found) {
+      if ( found ) {
+        util.generateUserHash(req.body.password, found.attributes.salt)
+          .then( function( hash ) {
+
+            if ( hash === found.attributes.password) {
+              res.redirect('/user/' + "alskdjflkjsdf");
+            }
+            else {
+              res.send(401);
+            }
+          });
+      }
+    });
 });
 
 app.post('/links',

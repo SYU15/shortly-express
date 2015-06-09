@@ -17,17 +17,32 @@ var db = Bookshelf.initialize({
 //pass user primary key into url
 
 db.knex.schema.hasTable('users').then(function(exists){
+
   if (!exists) {
-      db.knex.schema.createTable('users', function( user ){
-        user.increments('id').primary();
-        user.string('username', 255);
-        user.string('password', 255);
+    db.knex.schema.createTable('users', function( user ){
+      user.increments('id').primary();
+      user.string('username', 255);
+      user.string('password', 255);
+      user.string('salt', 255);
     }).then(function(table) {
-      console.log('Created table', table);
+      console.log('Created table users', table);
     });
   }
 });
 
+db.knex.schema.hasTable('tokens').then(function(exists){
+  if (!exists) {
+    db.knex.schema.createTable('tokens', function( token ){
+      token.increments('id').primary();
+      token.string('user_id', 255).references('id').inTable('users');
+      token.string('token_id', 255);
+      token.timestamps();
+    }).then(function(table) {
+      console.log('Created table tokens', table);
+    });
+  }
+
+});
 db.knex.schema.hasTable('urls').then(function(exists) {
   if (!exists) {
     db.knex.schema.createTable('urls', function (link) {
@@ -40,7 +55,7 @@ db.knex.schema.hasTable('urls').then(function(exists) {
       link.integer('visits');
       link.timestamps();
     }).then(function (table) {
-      console.log('Created Table', table);
+      console.log('Created Table urls', table);
     });
   }
 });
@@ -52,7 +67,7 @@ db.knex.schema.hasTable('clicks').then(function(exists) {
       click.integer('link_id').references('url').inTable('urls');
       click.timestamps();
     }).then(function (table) {
-      console.log('Created Table', table);
+      console.log('Created Table clicks', table);
     });
   }
 });
