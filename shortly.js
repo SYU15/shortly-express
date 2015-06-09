@@ -3,6 +3,7 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
 var Promise = require('bluebird');
+var expressSession = require('express-session');
 
 
 var db = require('./app/config');
@@ -22,11 +23,31 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
+var session = { path: '/',
+                httpOnly: true,
+                secure: false,
+                secret: 'sarah is da bomb',
+                cookie: {maxAge: 60000, secure: false},
+                maxAge: 60000
+                // genid: function(req) { return genuuid();}
+              };
 
+app.use(expressSession(session));
 
 app.get('/',
 function(req, res) {
   res.render('index');
+});
+
+app.get('/login',
+function(req, res) {
+  res.render('login');
+});
+
+app.get('/logout',
+function(req, res) {
+  req.session.destroy(req.session.sid, function(err){});
+  res.render('login');
 });
 
 app.get('/signup',
@@ -80,9 +101,12 @@ app.post('/login',
       if ( found ) {
         util.generateUserHash(req.body.password, found.attributes.salt)
           .then( function( hash ) {
-
             if ( hash === found.attributes.password) {
-              res.redirect('/user/' + "alskdjflkjsdf");
+
+              req.session.regenerate( function (err) {
+                req.session.userid = found.attributes.id;
+              });
+              res.redirect('/create/');
             }
             else {
               res.send(401);
@@ -95,13 +119,15 @@ app.post('/login',
 app.post('/links',
 function(req, res) {
   var uri = req.body.url;
-
   if (!util.isValidUrl(uri)) {
     console.log('Not a valid url: ', uri);
     return res.send(404);
   }
 
-  new Link({ url: uri }).fetch().then(function(found) {
+  console.log("Post " + uri + ": user id: " + req.session.userid);
+  var userid = req.session.userid || null;
+
+  new Link({ url: uri, user_id: userid }).fetch().then(function(found) {
     if (found) {
       res.send(200, found.attributes);
     } else {
@@ -111,7 +137,9 @@ function(req, res) {
           return res.send(404);
         }
 
+
         var link = new Link({
+          user_id: userid,
           url: uri,
           title: title,
           base_url: req.headers.origin
