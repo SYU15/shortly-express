@@ -43,15 +43,34 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 passport.use(new GitHubStrategy({
-
+    clientID: 'GITHUB_ID',
+    clientSecret: 'GITHUB_SECRET',
     callbackURL: 'http://127.0.0.1:4568/auth/github/callback'
   },
   function(accessToken, refreshToken, profile, done) {
-    console.log("Sarah's da bomb");
-    console.log("accessToken: " + accessToken + " refreshToken: " + refreshToken);
-    // console.log(JSON.stringify(profile));
-    return done(null, profile);
+    new User({ username: profile.username }).fetch()
+    .then(function(found) {
+      if (!found) {
+        var dbUser = new User ({
+          username: profile.username,
+          password: null,
+          salt: null,
+          authentication: 'github'
+        });
+
+        dbUser.save().then(function(newUser) {
+          profile.userid = newUser.get('user_id');
+          Users.add(newUser);
+        });
+      }
+      else {
+        profile.userid = found.attributes.id;
+      }
+
+      return done(null, profile);
+    });
   }
+
 ));
 
 passport.serializeUser(function(user, done) {
@@ -68,16 +87,13 @@ function(req, res) {
 });
 
 app.get('/auth/github',
-passport.authenticate('github', { failureRedirect: '/login' }),
-  function(req, res) {
-    // Successful authentication, redirect home.
-  res.redirect('/create');
-});
+passport.authenticate('github'));
 
 app.get('/auth/github/callback',
 passport.authenticate('github', { failureRedirect: '/login' }),
   function(req, res) {
-    console.log("Successful GitHub Login");
+    req.session.regenerate( function (err) {});
+    req.session.userid = req.user.userid;
     // Successful authentication, redirect home.
     res.redirect('/create');
 });
@@ -89,6 +105,7 @@ function(req, res) {
 
 app.get('/logout',
 function(req, res) {
+  req.logout();
   req.session.destroy(req.session.sid, function(err){});
   res.render('login');
 });
@@ -106,6 +123,7 @@ function(req, res) {
 app.get('/links',
 function(req, res) {
   var userid = req.session.userid;
+
   Links.reset().query('where', 'user_id', '=', userid).fetch().then(function(links) {
     res.send(200, links.models);
   });
@@ -114,7 +132,6 @@ function(req, res) {
 app.post('/signup',
   function(req, res){
     // grab user
-    console.log("Username: " + req.body.username + " Password: " + req.body.password);
     var generatedSalt;
 
     util.generateUserSalt()
@@ -127,12 +144,13 @@ app.post('/signup',
         var dbUser = new User ({
           username: req.body.username,
           password: hash,
-          salt: generatedSalt
+          salt: generatedSalt,
+          authentication: 'local'
         });
 
         dbUser.save().then(function(newUser) {
           Users.add(newUser);
-          res.redirect('/');
+          res.redirect('/login');
         });
       });
 });
@@ -147,9 +165,7 @@ app.post('/login',
             if ( hash === found.attributes.password) {
 
               req.session.regenerate( function (err) {});
-                console.log("regenerating session id: " + JSON.stringify(req.session) );
-                req.session.userid = found.attributes.id;
-                console.log("after: " + JSON.stringify(req.session))
+              req.session.userid = found.attributes.id;
               res.redirect('/create');
             }
             else {
@@ -168,7 +184,6 @@ function(req, res) {
     return res.send(404);
   }
 
-  console.log("Post " + uri + ": user id: " + req.session.userid);
   var userid = req.session.userid || null;
 
   new Link({ url: uri, user_id: userid }).fetch().then(function(found) {
