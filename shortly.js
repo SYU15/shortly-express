@@ -5,7 +5,8 @@ var bodyParser = require('body-parser');
 var Promise = require('bluebird');
 var expressSession = require('express-session');
 var passport = require('passport');
-var OAuthStrategy = require('passport-oauth').OAuthStrategy;
+//var OAuthStrategy = require('passport-oauth').OAuthStrategy;
+var GitHubStrategy = require('passport-github').Strategy;
 
 
 var db = require('./app/config');
@@ -31,24 +32,35 @@ var session = { path: '/',
                 secret: 'sarah is da bomb',
                 cookie: {maxAge: 3600000, secure: false},
                 maxAge: 3600000,
-                userid: null
+                userid: null,
+                resave: false,
+                saveUninitialized: true
                 // genid: function(req) { return genuuid();}
               };
 
 app.use(expressSession(session));
+app.use(passport.initialize());
+app.use(passport.session());
 
-passport.use('github', new OAuthStrategy({
-    requestTokenURL: 'https://www.github.com/login/oauth/request_token',
-    accessTokenURL: 'https://www.github.com/login/oauth/access_token',
-    userAuthorizationURL: 'https://www.github.com/login/oauth/authorize',
-    consumerKey: '123-456-789',
-    consumerSecret: 'shhh-its-a-secret',
-    callbackURL: 'https://127.0.0.1:4568/auth/github/callback'
+passport.use(new GitHubStrategy({
+
+    callbackURL: 'http://127.0.0.1:4568/auth/github/callback'
   },
-  function(token, tokenSecret, profile, done) {
-
+  function(accessToken, refreshToken, profile, done) {
+    console.log("Sarah's da bomb");
+    console.log("accessToken: " + accessToken + " refreshToken: " + refreshToken);
+    // console.log(JSON.stringify(profile));
+    return done(null, profile);
   }
 ));
+
+passport.serializeUser(function(user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function(obj, done) {
+  done(null, obj);
+});
 
 app.get('/',
 function(req, res) {
@@ -56,13 +68,18 @@ function(req, res) {
 });
 
 app.get('/auth/github',
-passport.authenticate('github'));
-
-app.get('/auth/github/callback',
 passport.authenticate('github', { failureRedirect: '/login' }),
   function(req, res) {
     // Successful authentication, redirect home.
   res.redirect('/create');
+});
+
+app.get('/auth/github/callback',
+passport.authenticate('github', { failureRedirect: '/login' }),
+  function(req, res) {
+    console.log("Successful GitHub Login");
+    // Successful authentication, redirect home.
+    res.redirect('/create');
 });
 
 app.get('/login',
